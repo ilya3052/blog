@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'articles',
     'users',
+    'social_auth',
 
     'rest_framework',
     'rest_framework_simplejwt',
