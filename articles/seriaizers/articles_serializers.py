@@ -27,10 +27,16 @@ class ArticleCommentsSerializer(serializers.ModelSerializer):
 
 class ArticleLikesSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
+    user_id = serializers.PrimaryKeyRelatedField(
+        queryset=CustomUser.objects.all(),
+        source='user',
+        write_only=True
+    )
 
     class Meta:
         model = ArticleLikes
-        fields = ('user',)
+        fields = ('user', 'article', 'user_id')
+        extra_kwargs = {'article': {'write_only': True}}
 
 
 class ArticleSerializer(serializers.ModelSerializer):

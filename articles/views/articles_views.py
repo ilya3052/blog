@@ -58,9 +58,8 @@ class ArticleCommentsRetrieveViews(generics.ListAPIView):
 class ArticleLikesViews(generics.CreateAPIView):
     def create(self, request, *args, **kwargs):
         article_id = self.kwargs['pk']
-        user_id = request.data.get('user')
+        user_id = request.data.get('user_id')
         request.data['article'] = article_id
-
         if (instance := ArticleLikes.objects.filter(article_id=article_id, user_id=user_id)).exists():
             instance.delete()
             return Response({"detail": "Лайк снят"}, status=status.HTTP_204_NO_CONTENT)
