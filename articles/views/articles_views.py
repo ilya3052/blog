@@ -3,7 +3,6 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from articles.models import Article, Tag, ArticleComments, ArticleLikes
-from articles.permissions import IsOwner
 from articles.seriaizers.articles_serializers import ArticleSerializer, TagSerializer, ArticleCommentsSerializer, \
     ArticleLikesSerializer
 
@@ -15,7 +14,7 @@ class ArticlesCreateViews(generics.CreateAPIView):
 
 class ArticlesViews(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ArticleSerializer
-    permission_classes = [IsAuthenticated & IsOwner]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         queryset = Article.objects.prefetch_related('likes__user').prefetch_related('comments').filter(
@@ -40,7 +39,7 @@ class ArticleCommentsViews(generics.CreateAPIView):
     def create(self, request, *args, **kwargs):
         article_id = self.kwargs['pk']
         request.data['article'] = article_id
-        request.data['author'] = request.data.pop('user')
+        request.data['author_id'] = request.data.pop('user')
         return super().create(request, *args, **kwargs)
 
     serializer_class = ArticleCommentsSerializer
