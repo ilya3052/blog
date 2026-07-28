@@ -24,15 +24,11 @@ class ArticlesViews(generics.RetrieveUpdateDestroyAPIView):
     lookup_field = 'pk'
 
 
-class TagCreateViews(generics.CreateAPIView):
+class TagViews(generics.ListCreateAPIView):
     serializer_class = TagSerializer
-    permission_classes = [AllowAny]
-
-
-class TagRetrieveAll(generics.ListAPIView):
     queryset = Tag.objects.all()
-    serializer_class = TagSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
 
 class ArticleCommentsViews(generics.CreateAPIView):

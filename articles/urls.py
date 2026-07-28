@@ -1,7 +1,7 @@
 from django.urls import path
 
-from articles.views.articles_views import ArticlesCreateViews, TagCreateViews, TagRetrieveAll, ArticlesViews, \
-    ArticleLikesViews, ArticleCommentsViews
+from articles.views.articles_views import ArticlesCreateViews, ArticlesViews, \
+    ArticleLikesViews, ArticleCommentsViews, TagViews
 
 urlpatterns = [
     path('', ArticlesCreateViews.as_view(), name='articles-create'),
@@ -12,6 +12,5 @@ urlpatterns = [
 
     path('<int:pk>/comments/send/', ArticleCommentsViews.as_view(), name='articles-comment'),
 
-    path('tags/', TagCreateViews.as_view(), name='tags-create'),
-    path('tags/all/', TagRetrieveAll.as_view(), name='tags-all'),
+    path('tags/', TagViews.as_view(), name='tags-create'),
 ]
