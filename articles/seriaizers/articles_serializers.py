@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from articles.models import Article, Tag, ArticleComments, ArticleLikes
+from users.models import CustomUser
 from users.serializers.user_serializer import UserSerializer
 
 
@@ -12,10 +13,16 @@ class TagSerializer(serializers.ModelSerializer):
 
 class ArticleCommentsSerializer(serializers.ModelSerializer):
     author = UserSerializer(read_only=True)
+    author_id = serializers.PrimaryKeyRelatedField(
+        queryset=CustomUser.objects.all(),
+        source='author',
+        write_only=True
+    )
 
     class Meta:
         model = ArticleComments
-        fields = ('id', 'content', 'added_at', 'author')
+        fields = ('id', 'content', 'added_at', 'author', 'article', 'author_id')
+        extra_kwargs = {'article': {'write_only': True}}
 
 
 class ArticleLikesSerializer(serializers.ModelSerializer):
