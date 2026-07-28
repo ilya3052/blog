@@ -39,7 +39,7 @@ class ArticleCommentsViews(generics.CreateAPIView):
     def create(self, request, *args, **kwargs):
         article_id = self.kwargs['pk']
         request.data['article'] = article_id
-        request.data['author_id'] = request.data.pop('user')
+        request.data['author_id'] = request.user.id
         return super().create(request, *args, **kwargs)
 
     serializer_class = ArticleCommentsSerializer
@@ -58,9 +58,9 @@ class ArticleCommentsRetrieveViews(generics.ListAPIView):
 class ArticleLikesViews(generics.CreateAPIView):
     def create(self, request, *args, **kwargs):
         article_id = self.kwargs['pk']
-        user_id = request.data.get('user_id')
         request.data['article'] = article_id
-        if (instance := ArticleLikes.objects.filter(article_id=article_id, user_id=user_id)).exists():
+        request.data['user_id'] = request.user.id
+        if (instance := ArticleLikes.objects.filter(article_id=article_id, user_id=request.user.id)).exists():
             instance.delete()
             return Response({"detail": "Лайк снят"}, status=status.HTTP_204_NO_CONTENT)
 
