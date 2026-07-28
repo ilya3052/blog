@@ -1,14 +1,44 @@
 from rest_framework import serializers
 
-from articles.models import Article, Tag
+from articles.models import Article, Tag, ArticleComments, ArticleLikes
+from users.serializers.user_serializer import UserSerializer
 
-
-class ArticleSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Article
-        fields = '__all__'
 
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
-        fields = '__all__'
+        fields = ('id', 'name')
+
+
+class ArticleCommentsSerializer(serializers.ModelSerializer):
+    author = UserSerializer(read_only=True)
+
+    class Meta:
+        model = ArticleComments
+        fields = ('id', 'content', 'added_at', 'author')
+
+
+class ArticleLikesSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+
+    class Meta:
+        model = ArticleLikes
+        fields = ('user',)
+
+
+class ArticleSerializer(serializers.ModelSerializer):
+    likes = ArticleLikesSerializer(many=True, read_only=True)
+    comments = ArticleCommentsSerializer(many=True, read_only=True)
+    author = UserSerializer(read_only=True)
+
+    tags = TagSerializer(many=True, read_only=True)
+    tags_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Tag.objects.all(),
+        source='tags',
+        many=True,
+        write_only=True
+    )
+
+    class Meta:
+        model = Article
+        fields = ('id', 'title', 'content', 'tags', 'tags_ids', 'likes', 'comments', 'author')
