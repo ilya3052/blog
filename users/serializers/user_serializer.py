@@ -10,20 +10,20 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class SubscriptionSerializer(serializers.ModelSerializer):
-    following = UserSerializer(read_only=True)
-    following_id = serializers.PrimaryKeyRelatedField(
+    subscribed_to = UserSerializer(read_only=True)
+    subscribed_to_id = serializers.PrimaryKeyRelatedField(
         queryset=CustomUser.objects.all(),
-        source='following',
+        source='subscribed_to',
         write_only=True
     )
-    follower = UserSerializer(read_only=True)
+    subscriber = UserSerializer(read_only=True)
 
-    follower_id = serializers.PrimaryKeyRelatedField(
+    subscriber_id = serializers.PrimaryKeyRelatedField(
         queryset=CustomUser.objects.all(),
-        source='follower',
+        source='subscriber',
         write_only=True
     )
 
     class Meta:
         model = Subscription
-        fields = ('follower', 'follower_id', 'following', 'following_id', 'created_at')
+        fields = ('subscriber', 'subscriber_id', 'subscribed_to', 'subscribed_to_id', 'created_at')

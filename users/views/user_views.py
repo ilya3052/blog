@@ -19,10 +19,14 @@ class UserAPIView(APIView):
 class SubscriptionView(generics.ListCreateAPIView):
     def create(self, request, *args, **kwargs):
         username = self.kwargs['username']
-        following_id = (CustomUser.objects.get(username=username)).pk
-        request.data['following_id'] = following_id
-        request.data['follower_id'] = request.user.id
-        if (instance := Subscription.objects.filter(following_id=following_id, follower_id=request.user.id)).exists():
+        subscribed_to_id = CustomUser.objects.get(username=username).pk
+        request.data['subscribed_to_id'] = subscribed_to_id
+        request.data['subscriber_id'] = request.user.id
+        instance = Subscription.objects.filter(
+            subscribed_to_id=subscribed_to_id,
+            subscriber_id=request.user.id
+        )
+        if instance.first():
             instance.delete()
             return Response({"detail": "Подписка удалена"}, status=status.HTTP_204_NO_CONTENT)
         return super().create(request, *args, **kwargs)
@@ -32,7 +36,7 @@ class SubscriptionView(generics.ListCreateAPIView):
         user = CustomUser.objects.get(username=username)
 
         followers = CustomUser.objects.filter(
-            id__in=user.followers.values('follower_id')  # берет подписчиков user-а и вытаскивает у них id
+            id__in=user.subscribers.values('subscriber_id')
         )
         serializer = UserSerializer(followers, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -45,11 +49,9 @@ class SubscriptionView(generics.ListCreateAPIView):
 class MySubscriptionsView(generics.ListAPIView):
     def get_queryset(self):
         user = self.request.user
-        # user.following - на кого подписан текущий пользователь
-        followers = CustomUser.objects.filter(
-            id__in=user.following.values('following_id')
+        return CustomUser.objects.filter(
+            id__in=user.subscriptions.values('subscribed_to_id')
         )
-        return followers
 
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]

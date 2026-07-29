@@ -15,16 +15,14 @@ class CustomUser(AbstractUser):
 
 
 class Subscription(models.Model):
-    pk = models.CompositePrimaryKey('following_id', 'follower_id')
-    # user.followers - кто подписан на user
-    # user.following - на кого подписан user
-    following = models.ForeignKey('CustomUser', on_delete=models.CASCADE,
-                                  related_name='followers')  # тот на кого подписались
-    follower = models.ForeignKey('CustomUser', on_delete=models.CASCADE, related_name='following')  # кто подписался
+    pk = models.CompositePrimaryKey('subscribed_to_id', 'subscriber_id')
+    subscribed_to = models.ForeignKey('CustomUser', on_delete=models.CASCADE,
+                                  related_name='subscribers')  # тот на кого подписались
+    subscriber = models.ForeignKey('CustomUser', on_delete=models.CASCADE, related_name='subscriptions')  # кто подписался
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'subscriptions'
         indexes = [
-            models.Index(fields=['follower']),
+            models.Index(fields=['subscriber']),
         ]
