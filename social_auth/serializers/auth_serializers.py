@@ -1,3 +1,4 @@
+from django.core.validators import validate_email
 from rest_framework import serializers
 
 from users.models import CustomUser
@@ -8,7 +9,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ('username', 'password', 'password2')
+        fields = ('email', 'username', 'password', 'password2')
         extra_kwargs = {'password': {'write_only': True}}
 
     def validate(self, data):
