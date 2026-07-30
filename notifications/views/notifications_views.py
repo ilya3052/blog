@@ -4,8 +4,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from notifications.models import Notifications
-from notifications.permissions import IsItself, IsNotificationRecipient
+from notifications.permissions import IsNotificationRecipient
 from notifications.serializers.notifications_serializers import NotificationSerializer
+from shared.permissions import IsItself
 from users.models import CustomUser, Subscription
 
 

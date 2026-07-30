@@ -3,12 +3,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from shared.permissions import IsItself
 from users.models import CustomUser, Subscription
 from users.serializers.user_serializer import UserSerializer, SubscriptionSerializer
 
 
 class UserAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated & IsItself]
 
     def get(self, request, *args, **kwargs):
         user = request.user
