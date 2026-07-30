@@ -20,7 +20,7 @@ class Subscription(models.Model):
                                   related_name='subscribers')  # тот на кого подписались
     subscriber = models.ForeignKey('CustomUser', on_delete=models.CASCADE, related_name='subscriptions')  # кто подписался
     created_at = models.DateTimeField(auto_now_add=True)
-
+    notifications = models.BooleanField(default=True)
     class Meta:
         db_table = 'subscriptions'
         indexes = [
