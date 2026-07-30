@@ -1,5 +1,5 @@
 from rest_framework import generics, status
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from articles.models import Article, Tag, ArticleComments, ArticleLikes
@@ -44,7 +44,11 @@ class TagViews(generics.ListCreateAPIView):
     pagination_class = None
 
 
-class ArticleCommentsViews(generics.CreateAPIView):
+class ArticleCommentsViews(generics.ListCreateAPIView):
+    def get_queryset(self):
+        queryset = ArticleComments.objects.select_related('author').filter(article_id=self.kwargs['pk'])
+        return queryset
+
     def create(self, request, *args, **kwargs):
         article_id = self.kwargs['pk']
         request.data['article'] = article_id
@@ -53,15 +57,6 @@ class ArticleCommentsViews(generics.CreateAPIView):
 
     serializer_class = ArticleCommentsSerializer
     permission_classes = [IsAuthenticated]
-
-
-class ArticleCommentsRetrieveViews(generics.ListAPIView):
-    serializer_class = ArticleCommentsSerializer
-    permission_classes = [AllowAny]
-
-    def get_queryset(self):
-        queryset = ArticleComments.objects.select_related('author').filter(article_id=self.kwargs['pk'])
-        return queryset
 
 
 class ArticleLikesViews(generics.CreateAPIView):
@@ -77,4 +72,3 @@ class ArticleLikesViews(generics.CreateAPIView):
 
     serializer_class = ArticleLikesSerializer
     permission_classes = [IsAuthenticated]
-

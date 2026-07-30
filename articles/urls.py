@@ -10,7 +10,7 @@ urlpatterns = [
     path('<int:pk>/likes/set/', ArticleLikesViews.as_view(), name='articles-like'),
     # path('<int:pk>/likes/all/', ArticleLikesRetrieveViews.as_view(), name='articles-like-all'), #необходимо ли?
 
-    path('<int:pk>/comments/send/', ArticleCommentsViews.as_view(), name='articles-comment'),
+    path('<int:pk>/comments/', ArticleCommentsViews.as_view(), name='articles-comment'),
 
     path('tags/', TagViews.as_view(), name='tags-create'),
 ]
