@@ -10,6 +10,9 @@ from articles.seriaizers.articles_serializers import ArticleSerializer, TagSeria
 class ArticlesCreateViews(generics.CreateAPIView):
     serializer_class = ArticleSerializer
     permission_classes = [IsAuthenticated]
+    def create(self, request, *args, **kwargs):
+        request.data['author_id'] = request.user.id
+        return super().create(request, *args, **kwargs)
 
 
 class ArticlesViews(generics.RetrieveUpdateDestroyAPIView):

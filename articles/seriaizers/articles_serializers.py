@@ -42,7 +42,6 @@ class ArticleLikesSerializer(serializers.ModelSerializer):
 class ArticleSerializer(serializers.ModelSerializer):
     likes = ArticleLikesSerializer(many=True, read_only=True)
     comments = ArticleCommentsSerializer(many=True, read_only=True)
-    author = UserSerializer(read_only=True)
 
     tags = TagSerializer(many=True, read_only=True)
     tags_ids = serializers.PrimaryKeyRelatedField(
@@ -51,7 +50,13 @@ class ArticleSerializer(serializers.ModelSerializer):
         many=True,
         write_only=True
     )
+    author = UserSerializer(read_only=True)
+    author_id = serializers.PrimaryKeyRelatedField(
+        queryset=CustomUser.objects.all(),
+        write_only=True,
+        source='author'
+    )
 
     class Meta:
         model = Article
-        fields = ('id', 'title', 'content', 'tags', 'tags_ids', 'likes', 'comments', 'author')
+        fields = ('id', 'title', 'content', 'tags', 'tags_ids', 'likes', 'comments', 'author', 'author_id')
