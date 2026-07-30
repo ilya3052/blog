@@ -1,7 +1,10 @@
 from django.urls import path
 
-from notifications.views.notifications_views import SwitchNotificationsModeView
+from notifications.views.notifications_views import SwitchNotificationsModeView, NotificationsView, \
+    NotificationsListView
 
 urlpatterns = [
-    path('<str:username>/notifications/', SwitchNotificationsModeView.as_view(), name='switch-notifications-mode'),
+    path('<str:username>/switch/', SwitchNotificationsModeView.as_view(), name='switch-notifications-mode'),
+    path('<int:pk>/', NotificationsView.as_view(), name='notification-actions'),
+    path('<str:username>/all/', NotificationsListView.as_view(), name='notification-list'),
 ]

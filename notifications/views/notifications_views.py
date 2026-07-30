@@ -1,9 +1,28 @@
-from rest_framework import status
+from rest_framework import status, generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from notifications.models import Notifications
+from notifications.serializers.notifications_serializers import NotificationSerializer
 from users.models import CustomUser, Subscription
+
+
+class NotificationsView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = NotificationSerializer
+    queryset = Notifications.objects.all()
+
+
+class NotificationsListView(generics.ListAPIView):
+    def get_queryset(self):
+        username = self.kwargs['username']
+        user_id = CustomUser.objects.get(username=username).pk
+        return Notifications.objects.filter(recipient_id=user_id)
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = NotificationSerializer
+    queryset = Notifications.objects.all()
 
 
 class SwitchNotificationsModeView(APIView):
