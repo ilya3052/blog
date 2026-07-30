@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'articles',
     'users',
     'social_auth',
+    'notifications',
 
     'rest_framework',
     'rest_framework_simplejwt',

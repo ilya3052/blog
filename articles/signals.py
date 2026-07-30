@@ -1,9 +1,9 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from icecream import ic
 
-from articles.models import Article, Notifications
-from users.models import CustomUser, Subscription
+from articles.models import Article
+from notifications.models import Notifications
+from users.models import CustomUser
 
 
 @receiver(post_save, sender=Article)
