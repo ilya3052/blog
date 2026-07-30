@@ -3,6 +3,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from articles.models import Article, Tag, ArticleComments, ArticleLikes
+from articles.permissions import IsOwner, ReadOnly
 from articles.seriaizers.articles_serializers import ArticleSerializer, TagSerializer, ArticleCommentsSerializer, \
     ArticleLikesSerializer
 
@@ -10,6 +11,7 @@ from articles.seriaizers.articles_serializers import ArticleSerializer, TagSeria
 class ArticlesCreateViews(generics.CreateAPIView):
     serializer_class = ArticleSerializer
     permission_classes = [IsAuthenticated]
+
     def create(self, request, *args, **kwargs):
         request.data['author_id'] = request.user.id
         return super().create(request, *args, **kwargs)
@@ -17,7 +19,15 @@ class ArticlesCreateViews(generics.CreateAPIView):
 
 class ArticlesViews(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ArticleSerializer
-    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            permissions = [IsAuthenticated]
+        elif self.request.method in ('PATCH', 'DELETE'):
+            permissions = [IsAuthenticated, IsOwner]
+        else:
+            permissions = [ReadOnly]
+        return [permission() for permission in permissions]
 
     def get_queryset(self):
         queryset = Article.objects.prefetch_related('likes__user').prefetch_related('comments').filter(
@@ -68,11 +78,3 @@ class ArticleLikesViews(generics.CreateAPIView):
     serializer_class = ArticleLikesSerializer
     permission_classes = [IsAuthenticated]
 
-# class ArticleLikesRetrieveViews(generics.ListAPIView):
-#     serializer_class = ArticleLikesSerializer
-#     permission_classes = [AllowAny]
-#     pagination_class = None
-#
-#     def get_queryset(self):
-#         queryset = ArticleLikes.objects.select_related('user').filter(article_id=self.kwargs['pk'])
-#         return queryset
