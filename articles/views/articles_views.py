@@ -3,7 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from articles.models import Article, Tag, ArticleComments, ArticleLikes
-from articles.permissions import IsOwner, ReadOnly
+from articles.permissions import IsArticleOwner, ReadOnly
 from articles.seriaizers.articles_serializers import ArticleSerializer, TagSerializer, ArticleCommentsSerializer, \
     ArticleLikesSerializer
 
@@ -24,7 +24,7 @@ class ArticlesViews(generics.RetrieveUpdateDestroyAPIView):
         if self.request.method == 'GET':
             permissions = [IsAuthenticated]
         elif self.request.method in ('PATCH', 'DELETE'):
-            permissions = [IsAuthenticated, IsOwner]
+            permissions = [IsAuthenticated, IsArticleOwner]
         else:
             permissions = [ReadOnly]
         return [permission() for permission in permissions]
