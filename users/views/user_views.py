@@ -8,14 +8,21 @@ from users.models import CustomUser, Subscription
 from users.serializers.user_serializer import UserSerializer, SubscriptionSerializer
 
 
-class UserAPIView(APIView):
+class PublicUserInfoView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        return Response({'username': user.username}, status=status.HTTP_200_OK)
+
+
+class UserInfoView(APIView):
     permission_classes = [IsAuthenticated & IsItself]
 
     def get(self, request, *args, **kwargs):
         user = request.user
         serializer = UserSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
-
 
 class SubscriptionView(generics.ListCreateAPIView):
     def create(self, request, *args, **kwargs):
