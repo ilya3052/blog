@@ -1,10 +1,21 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from redis import Redis
 
 from articles.models import Article
 from notifications.models import Notifications
+from shared.config import Config
 from users.models import CustomUser
 
+config = Config.load()
+
+redis_conn = Redis(
+                host=config.redis.host,
+                port=config.redis.port,
+                password=config.secret_redis.password.get_secret_value(),
+                encoding="utf-8",
+                decode_responses=True
+            )
 
 @receiver(post_save, sender=Article)
 def article_publicated(sender, instance, created, **kwargs):
