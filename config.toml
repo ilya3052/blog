@@ -1,0 +1,10 @@
+[redis]
+host = "192.168.1.53"
+port = 6739
+channel = "notifications"
+
+[database]
+host = "localhost"
+port = 5432
+user = "blog_app"
+name = "blog"
