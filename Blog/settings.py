@@ -15,7 +15,9 @@ import os
 
 from dotenv import load_dotenv
 
-load_dotenv()
+from shared.config import Config
+
+config = Config.load()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,13 +27,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY')
+SECRET_KEY = config.secret_django.secret_key.get_secret_value()
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.1.53']
+ALLOWED_HOSTS = ['192.168.1.53', '192.168.1.85']
 
+CORS_ALLOWED_ORIGINS = [
+    "http://192.168.1.85",
+    "http://192.168.1.85:82",
+]
+
+CORS_ALLOW_CREDENTIALS = True
 
 # Application definition
 
@@ -89,11 +97,11 @@ WSGI_APPLICATION = 'Blog.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASS'),
-        'HOST': os.getenv('DB_HOST'),
-        'PORT': os.getenv('DB_PORT', '5432'),
+        'NAME': config.database.name,
+        'USER': config.database.user,
+        'PASSWORD': config.secret_database.password.get_secret_value(),
+        'HOST': config.database.host,
+        'PORT':  config.database.port,
     }
 }
 
@@ -139,8 +147,8 @@ SIMPLE_JWT = {
     # "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
-    "ROTATE_REFRESH_TOKENS": False,
-    "BLACKLIST_AFTER_ROTATION": False,
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": False,
 
     "ALGORITHM": "HS256",
@@ -190,6 +198,7 @@ REST_FRAMEWORK = {
     ],
 
     'DEFAULT_AUTHENTICATION_CLASSES': [
+        'social_auth.authenticate.CookieJWTAuthentication',
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
 
