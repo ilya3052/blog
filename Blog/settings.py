@@ -32,10 +32,11 @@ SECRET_KEY = config.secret_django.secret_key.get_secret_value()
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.1.53']
+ALLOWED_HOSTS = ['192.168.1.53', '192.168.1.85']
 
 CORS_ALLOWED_ORIGINS = [
-    "http://192.168.1.53:81",
+    "http://192.168.1.85",
+    "http://192.168.1.85:82",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -146,8 +147,8 @@ SIMPLE_JWT = {
     # "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
-    "ROTATE_REFRESH_TOKENS": False,
-    "BLACKLIST_AFTER_ROTATION": False,
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": False,
 
     "ALGORITHM": "HS256",
@@ -197,6 +198,7 @@ REST_FRAMEWORK = {
     ],
 
     'DEFAULT_AUTHENTICATION_CLASSES': [
+        'social_auth.authenticate.CookieJWTAuthentication',
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
 
