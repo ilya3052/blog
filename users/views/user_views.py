@@ -17,7 +17,7 @@ class PublicUserInfoView(APIView):
 
 
 class UserInfoView(APIView):
-    permission_classes = [IsAuthenticated & IsItself]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
         user = request.user

@@ -34,6 +34,11 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['192.168.1.53']
 
+CORS_ALLOWED_ORIGINS = [
+    "http://192.168.1.53:81",
+]
+
+CORS_ALLOW_CREDENTIALS = True
 
 # Application definition
 
