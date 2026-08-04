@@ -1,5 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.db import models
+from django.utils.text import slugify
+from unidecode import unidecode
 
 user = get_user_model()
 
@@ -9,9 +11,22 @@ class Article(models.Model):
     content = models.TextField()
     tags = models.ManyToManyField('Tag', related_name='articles')
     author = models.ForeignKey(user, on_delete=models.CASCADE, related_name='articles')
+    slug = models.SlugField(max_length=255, unique=True, db_index=True, blank=True)
 
     def __str__(self):
         return self.title
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base_slug = slugify(unidecode(self.title))
+            slug = base_slug
+            counter = 1
+            while self.__class__.objects.filter(slug=slug).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            self.slug = slug
+
+        return super().save(*args, **kwargs)
 
     class Meta:
         db_table = 'articles'

@@ -31,10 +31,10 @@ class ArticlesViews(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         queryset = Article.objects.prefetch_related('likes__user').prefetch_related('comments').filter(
-            pk=self.kwargs['pk'])
+            slug=self.kwargs['slug'])
         return queryset
 
-    lookup_field = 'pk'
+    lookup_field = 'slug'
 
 
 class TagViews(generics.ListCreateAPIView):
