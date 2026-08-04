@@ -6,7 +6,6 @@ from rest_framework.views import APIView
 from notifications.models import Notifications
 from notifications.permissions import IsNotificationRecipient
 from notifications.serializers.notifications_serializers import NotificationSerializer
-from shared.permissions import IsItself
 from users.models import CustomUser, Subscription
 
 
@@ -18,14 +17,13 @@ class NotificationsView(generics.UpdateAPIView, generics.DestroyAPIView):
 
 class NotificationsListView(generics.ListAPIView):
     def get_queryset(self):
-        username = self.kwargs['username']
-        user_id = CustomUser.objects.get(username=username).pk
+        user_id = self.request.user.pk
         extra = {}
         if param := self.request.GET.dict().get('f'):
             extra['status'] = param.upper()
         return Notifications.objects.filter(recipient_id=user_id, **extra)
 
-    permission_classes = [IsAuthenticated & IsItself]
+    permission_classes = [IsAuthenticated]
     serializer_class = NotificationSerializer
     queryset = Notifications.objects.all()
 
