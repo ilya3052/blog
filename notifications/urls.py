@@ -6,5 +6,5 @@ from notifications.views.notifications_views import SwitchNotificationsModeView,
 urlpatterns = [
     path('<str:username>/switch/', SwitchNotificationsModeView.as_view(), name='switch-notifications-mode'),
     path('<int:pk>/', NotificationsView.as_view(), name='notification-actions'),
-    path('<str:username>/all/', NotificationsListView.as_view(), name='notification-list'),
+    path('all/', NotificationsListView.as_view(), name='notification-list'),
 ]

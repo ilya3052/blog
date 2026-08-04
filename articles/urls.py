@@ -5,7 +5,7 @@ from articles.views.articles_views import ArticlesCreateViews, ArticlesViews, \
 
 urlpatterns = [
     path('', ArticlesCreateViews.as_view(), name='articles-create'),
-    path('<int:pk>/', ArticlesViews.as_view(), name='articles-get'),
+    path('<int:pk>/', ArticlesViews.as_view(), name='articles-actions'),
 
     path('<int:pk>/likes/set/', ArticleLikesViews.as_view(), name='articles-like'),
     # path('<int:pk>/likes/all/', ArticleLikesRetrieveViews.as_view(), name='articles-like-all'), #необходимо ли?

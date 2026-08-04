@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView, TokenBlacklistView
 
+from Blog import settings
 from social_auth.serializers.auth_serializers import UserRegisterSerializer
 
 
@@ -18,8 +19,22 @@ class UserRegistrationView(APIView):
             user = serializer.save()
             tokens = RefreshToken.for_user(user)
             response = Response({"id": user.pk}, status=status.HTTP_201_CREATED)
-            response.set_cookie("access_token", str(tokens.access_token))
-            response.set_cookie("refresh_token", str(tokens))
+            response.set_cookie(
+                key="access_token",
+                value=str(tokens.access_token),
+                httponly=True,
+                secure=False,
+                samesite="Lax",
+                max_age=settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds(),
+            )
+            response.set_cookie(
+                key="refresh_token",
+                value=str(tokens),
+                httponly=True,
+                secure=False,
+                samesite="Lax",
+                max_age=settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds(),
+            )
             return response
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -37,7 +52,7 @@ class CookieTokenObtainPairView(TokenObtainPairView):
             httponly=True,
             secure=False,
             samesite="Lax",
-            max_age=5 * 60,
+            max_age=settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"],
         )
 
         response.set_cookie(
@@ -46,8 +61,10 @@ class CookieTokenObtainPairView(TokenObtainPairView):
             httponly=True,
             secure=False,
             samesite="Lax",
-            max_age=24 * 60 * 60,
+            max_age=settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"],
         )
+        del response.data["access"]
+        del response.data["refresh"]
 
         return response
 
@@ -69,7 +86,7 @@ class CookieTokenRefreshView(TokenRefreshView):
             httponly=True,
             secure=False,
             samesite="Lax",
-            max_age=24 * 60 * 60,
+            max_age=settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"],
         )
 
         response.set_cookie(
@@ -78,9 +95,10 @@ class CookieTokenRefreshView(TokenRefreshView):
             httponly=True,
             secure=False,
             samesite="Lax",
-            max_age=24 * 60 * 60,
+            max_age=settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"],
         )
-
+        del response.data["access"]
+        del response.data["refresh"]
         return response
 
 

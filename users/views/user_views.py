@@ -10,8 +10,11 @@ from users.serializers.user_serializer import UserSerializer, SubscriptionSerial
 class PublicUserInfoView(APIView):
     permission_classes = [IsAuthenticated]
 
+    # убрать вовсе и/или добавить больше информации + возможность закрытия информации
     def get(self, request, *args, **kwargs):
-        user = request.user
+        user = CustomUser.objects.filter(username=kwargs['username']).first()
+        if not user:
+            return Response({'detail': 'Пользователь не найден'}, status=status.HTTP_404_NOT_FOUND)
         return Response({'username': user.username}, status=status.HTTP_200_OK)
 
 
