@@ -41,7 +41,6 @@ class ArticleLikesSerializer(serializers.ModelSerializer):
 
 class ArticleSerializer(serializers.ModelSerializer):
     likes = ArticleLikesSerializer(many=True, read_only=True)
-    comments = ArticleCommentsSerializer(many=True, read_only=True)
 
     tags = TagSerializer(many=True, read_only=True)
     tags_ids = serializers.PrimaryKeyRelatedField(

@@ -1,11 +1,11 @@
 from django.urls import path
 
 from articles.views.articles_views import ArticlesCreateViews, ArticlesViews, \
-    ArticleLikesViews, ArticleCommentsViews, TagViews, ArticleCommentsRepliesViews, MyArticlesViews
+    ArticleLikesViews, ArticleCommentsViews, TagViews, ArticleCommentsRepliesViews, UserArticlesViews
 
 urlpatterns = [
     path('', ArticlesCreateViews.as_view(), name='articles-create'),
-    path('my/', MyArticlesViews.as_view(), name='user-articles'),
+    path('<str:username>/', UserArticlesViews.as_view(), name='user-articles'),
     path('<str:slug>/', ArticlesViews.as_view(), name='articles-actions'),
 
     path('<int:pk>/likes/set/', ArticleLikesViews.as_view(), name='articles-like'),
