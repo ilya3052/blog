@@ -30,7 +30,7 @@ class ArticlesViews(generics.RetrieveUpdateDestroyAPIView):
         return [permission() for permission in permissions]
 
     def get_queryset(self):
-        queryset = Article.objects.prefetch_related('likes__user').prefetch_related('comments').filter(
+        queryset = Article.objects.select_related('author').prefetch_related('likes__user').filter(
             slug=self.kwargs['slug'])
         return queryset
 
@@ -46,7 +46,7 @@ class TagViews(generics.ListCreateAPIView):
 
 class ArticleCommentsViews(generics.ListCreateAPIView):
     def get_queryset(self):
-        queryset = ArticleComments.objects.select_related('author').filter(article_id=self.kwargs['pk'])
+        queryset = ArticleComments.objects.select_related('author').filter(article_id=self.kwargs['pk'], parent=None)
         return queryset
 
     def create(self, request, *args, **kwargs):
@@ -57,6 +57,27 @@ class ArticleCommentsViews(generics.ListCreateAPIView):
 
     serializer_class = ArticleCommentsSerializer
     permission_classes = [IsAuthenticated]
+
+
+class ArticleCommentsRepliesViews(generics.RetrieveAPIView):
+    serializer_class = ArticleCommentsSerializer
+    permission_classes = [IsAuthenticated]
+
+    def retrieve(self, request, *args, **kwargs):
+        article = Article.objects.filter(pk=self.kwargs['pk']).first()
+        if not article:
+            return Response({'detail': 'Статья не найдена'}, status=status.HTTP_404_NOT_FOUND)
+
+        comment: ArticleComments = ArticleComments.objects.filter(pk=self.kwargs['comment_id']).first()
+        if not comment:
+            return Response({'detail': 'Комментарий не найден'}, status=status.HTTP_404_NOT_FOUND)
+
+        if comment.get_root().article != article:
+            return Response({'detail': 'Некорректная ветка комментариев'}, status=status.HTTP_404_NOT_FOUND)
+
+        replies = comment.get_children()
+        serializer = self.get_serializer(replies, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class ArticleLikesViews(generics.CreateAPIView):

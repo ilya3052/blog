@@ -21,7 +21,7 @@ class ArticleCommentsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ArticleComments
-        fields = ('id', 'content', 'added_at', 'author', 'article', 'author_id')
+        fields = ('id', 'content', 'added_at', 'author', 'article', 'author_id', 'parent')
         extra_kwargs = {'article': {'write_only': True}}
 
 
@@ -59,4 +59,4 @@ class ArticleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Article
-        fields = ('id', 'title', 'content', 'slug', 'tags', 'tags_ids', 'likes', 'comments', 'author', 'author_id')
+        fields = ('id', 'title', 'content', 'slug', 'tags', 'tags_ids', 'likes', 'author', 'author_id')
