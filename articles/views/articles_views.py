@@ -2,10 +2,12 @@ from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 
+from articles.exceptions import UserNotFoundError
 from articles.models import Article, Tag, ArticleComments, ArticleLikes
 from articles.permissions import IsArticleOwner, ReadOnly
 from articles.seriaizers.articles_serializers import ArticleSerializer, TagSerializer, ArticleCommentsSerializer, \
     ArticleLikesSerializer
+from users.models import CustomUser
 
 
 class ArticlesCreateViews(generics.CreateAPIView):
@@ -101,3 +103,14 @@ class ArticleLikesViews(generics.CreateAPIView):
 
     serializer_class = ArticleLikesSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+
+
+class UserArticlesViews(generics.ListAPIView):
+    serializer_class = ArticleSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        author = CustomUser.objects.filter(username=self.kwargs.get('username')).first()
+        if not author:
+            raise UserNotFoundError
+        return Article.objects.prefetch_related('likes__user').filter(author=author)
