@@ -101,3 +101,11 @@ class ArticleLikesViews(generics.CreateAPIView):
 
     serializer_class = ArticleLikesSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+
+
+class MyArticlesViews(generics.ListAPIView):
+    serializer_class = ArticleSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Article.objects.prefetch_related('likes__user').filter(author=self.request.user)
