@@ -1,5 +1,5 @@
 from rest_framework import generics, status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 
 from articles.models import Article, Tag, ArticleComments, ArticleLikes
@@ -22,7 +22,7 @@ class ArticlesViews(generics.RetrieveUpdateDestroyAPIView):
 
     def get_permissions(self):
         if self.request.method == 'GET':
-            permissions = [IsAuthenticated]
+            permissions = [IsAuthenticatedOrReadOnly]
         elif self.request.method in ('PATCH', 'DELETE'):
             permissions = [IsAuthenticated, IsArticleOwner]
         else:
@@ -45,6 +45,15 @@ class TagViews(generics.ListCreateAPIView):
 
 
 class ArticleCommentsViews(generics.ListCreateAPIView):
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            permissions = [IsAuthenticatedOrReadOnly]
+        elif self.request.method in ('POST',):
+            permissions = [IsAuthenticated]
+        else:
+            permissions = [ReadOnly]
+        return [permission() for permission in permissions]
+
     def get_queryset(self):
         queryset = ArticleComments.objects.select_related('author').filter(article_id=self.kwargs['pk'], parent=None)
         return queryset
@@ -56,12 +65,11 @@ class ArticleCommentsViews(generics.ListCreateAPIView):
         return super().create(request, *args, **kwargs)
 
     serializer_class = ArticleCommentsSerializer
-    permission_classes = [IsAuthenticated]
 
 
 class ArticleCommentsRepliesViews(generics.RetrieveAPIView):
     serializer_class = ArticleCommentsSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
     def retrieve(self, request, *args, **kwargs):
         article = Article.objects.filter(pk=self.kwargs['pk']).first()
@@ -92,4 +100,4 @@ class ArticleLikesViews(generics.CreateAPIView):
         return super().create(request, *args, **kwargs)
 
     serializer_class = ArticleLikesSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticatedOrReadOnly]
