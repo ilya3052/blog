@@ -1,30 +1,42 @@
 from rest_framework import status, generics
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.generics import get_object_or_404
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
+from articles.permissions import ReadOnly
+from shared.permissions import IsItself
 from users.models import CustomUser, Subscription
 from users.serializers.user_serializer import UserSerializer, SubscriptionSerializer
 
 
-class PublicUserInfoView(APIView):
-    permission_classes = [IsAuthenticated]
+class UserInfoView(generics.RetrieveUpdateDestroyAPIView):
+    def get_permissions(self):
+        if self.request.method in ('GET',):
+            permissions = [AllowAny]
+        elif self.request.method in ('PATCH', 'DELETE'):
+            permissions = [IsAuthenticated, IsItself]
+        else:
+            permissions = [ReadOnly]
+        return [perm() for perm in permissions]
 
-    # убрать вовсе и/или добавить больше информации + возможность закрытия информации
-    def get(self, request, *args, **kwargs):
-        user = CustomUser.objects.filter(username=kwargs['username']).first()
-        if not user:
-            return Response({'detail': 'Пользователь не найден'}, status=status.HTTP_404_NOT_FOUND)
-        return Response({'username': user.username}, status=status.HTTP_200_OK)
+    queryset = CustomUser.objects.all()
+    serializer_class = UserSerializer
 
+    def get_object(self):
+        return get_object_or_404(CustomUser, username=self.kwargs['username'])
 
-class UserInfoView(APIView):
-    permission_classes = [IsAuthenticated]
+    def retrieve(self, request, *args, **kwargs):
+        user_info = get_object_or_404(CustomUser.objects
+                                      .prefetch_related('articles')
+                                      .prefetch_related('likes')
+                                      .prefetch_related('comments')
+                                      .prefetch_related('subscriptions')
+                                      .prefetch_related('subscribers__subscriber'),
+                                      username=self.kwargs['username'])
+        serializer = self.get_serializer(user_info, context={'request': request})
 
-    def get(self, request, *args, **kwargs):
-        user = request.user
-        serializer = UserSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 class SubscriptionView(generics.ListCreateAPIView):
     def create(self, request, *args, **kwargs):
