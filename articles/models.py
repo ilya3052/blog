@@ -72,3 +72,9 @@ class ArticleLikes(models.Model):
 
     class Meta:
         db_table = 'article_likes'
+
+
+class ArticleUniqueViews(models.Model):
+    pk = models.CompositePrimaryKey('article_id', 'user_id')
+    article = models.ForeignKey('Article', on_delete=models.CASCADE, related_name='unique_views')
+    user = models.ForeignKey(user, on_delete=models.CASCADE)
