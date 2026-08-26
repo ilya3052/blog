@@ -4,39 +4,52 @@ from rest_framework.response import Response
 
 from articles.exceptions import UserNotFoundError
 from articles.models import Article, Tag, ArticleComments, ArticleLikes
-from articles.permissions import IsArticleOwner, ReadOnly
-from articles.seriaizers.articles_serializers import ArticleSerializer, TagSerializer, ArticleCommentsSerializer, \
-    ArticleLikesSerializer
+from articles.permissions import ReadOnly
+from articles.seriaizers.articles_serializers import ArticleCreateSerializer, TagSerializer, \
+    ArticleCommentsSerializer, \
+    ArticleLikesSerializer, ArticleDetailInfoSerializer, ArticleShortInfoSerializer
 from users.models import CustomUser
 
 
 class ArticlesCreateViews(generics.CreateAPIView):
-    serializer_class = ArticleSerializer
+    serializer_class = ArticleCreateSerializer
     permission_classes = [IsAuthenticated]
 
     def create(self, request, *args, **kwargs):
-        request.data['author_id'] = request.user.id
-        return super().create(request, *args, **kwargs)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def perform_create(self, serializer):
+        serializer.save(author_id=self.request.user.id)
 
 
-class ArticlesViews(generics.RetrieveUpdateDestroyAPIView):
-    serializer_class = ArticleSerializer
-
-    def get_permissions(self):
-        if self.request.method == 'GET':
-            permissions = [IsAuthenticatedOrReadOnly]
-        elif self.request.method in ('PATCH', 'DELETE'):
-            permissions = [IsAuthenticated, IsArticleOwner]
-        else:
-            permissions = [ReadOnly]
-        return [permission() for permission in permissions]
+class ArticlesViews(generics.RetrieveAPIView):
+    serializer_class = ArticleDetailInfoSerializer
+    permission_classes = [ReadOnly]
 
     def get_queryset(self):
-        queryset = Article.objects.select_related('author').prefetch_related('likes__user').filter(
-            slug=self.kwargs['slug'])
+        queryset = (Article.objects
+                    .select_related('author')
+                    .prefetch_related('comments')
+                    .prefetch_related('likes')
+                    .prefetch_related('unique_views')
+                    .filter(slug=self.kwargs['slug']))
         return queryset
 
     lookup_field = 'slug'
+
+
+class ArticlesListView(generics.ListAPIView):  # заготовка для будущей ленты
+    serializer_class = ArticleShortInfoSerializer
+    permission_classes = [ReadOnly]
+    queryset = (Article.objects
+                .select_related('author')
+                .prefetch_related('comments')
+                .prefetch_related('likes')
+                .prefetch_related('unique_views')
+                )
 
 
 class TagViews(generics.ListCreateAPIView):
@@ -78,7 +91,8 @@ class ArticleCommentsRepliesViews(generics.RetrieveAPIView):
         if not article:
             return Response({'detail': 'Статья не найдена'}, status=status.HTTP_404_NOT_FOUND)
 
-        comment: ArticleComments = ArticleComments.objects.filter(pk=self.kwargs['comment_id']).first()
+        comment: ArticleComments = ArticleComments.objects.select_related('article').filter(
+            pk=self.kwargs['comment_id']).first()
         if not comment:
             return Response({'detail': 'Комментарий не найден'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -106,11 +120,16 @@ class ArticleLikesViews(generics.CreateAPIView):
 
 
 class UserArticlesViews(generics.ListAPIView):
-    serializer_class = ArticleSerializer
+    serializer_class = ArticleDetailInfoSerializer
     permission_classes = [IsAuthenticated]
+    lookup_field = 'username'
 
     def get_queryset(self):
         author = CustomUser.objects.filter(username=self.kwargs.get('username')).first()
         if not author:
             raise UserNotFoundError
-        return Article.objects.prefetch_related('likes__user').filter(author=author)
+        return (Article.objects.select_related('author')
+                .prefetch_related('comments')
+                .prefetch_related('likes')
+                .prefetch_related('unique_views')
+                .filter(author=author))
