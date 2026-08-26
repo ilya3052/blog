@@ -3,11 +3,11 @@ from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnl
 from rest_framework.response import Response
 
 from articles.exceptions import UserNotFoundError
-from articles.models import Article, Tag, ArticleComments, ArticleLikes
+from articles.models import Article, Tag, ArticleComments, ArticleLikes, ArticleBookmarks
 from articles.permissions import ReadOnly
 from articles.seriaizers.articles_serializers import ArticleCreateSerializer, TagSerializer, \
     ArticleCommentsSerializer, \
-    ArticleLikesSerializer, ArticleDetailInfoSerializer, ArticleShortInfoSerializer
+    ArticleLikesSerializer, ArticleDetailInfoSerializer, ArticleShortInfoSerializer, ArticleBookmarksSerializer
 from users.models import CustomUser
 
 
@@ -37,6 +37,11 @@ class ArticlesViews(generics.RetrieveAPIView):
                     .prefetch_related('unique_views')
                     .filter(slug=self.kwargs['slug']))
         return queryset
+
+    def retrieve(self, request, *args, **kwargs):
+        obj = self.get_object()
+        serializer = self.get_serializer(obj, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     lookup_field = 'slug'
 
@@ -102,6 +107,21 @@ class ArticleCommentsRepliesViews(generics.RetrieveAPIView):
         replies = comment.get_children()
         serializer = self.get_serializer(replies, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ArticleBookmarksViews(generics.CreateAPIView):
+    def create(self, request, *args, **kwargs):
+        article_id = self.kwargs['pk']
+        request.data['article'] = article_id
+        request.data['user_id'] = request.user.id
+        if (instance := ArticleBookmarks.objects.filter(article_id=article_id, user_id=request.user.id)).exists():
+            instance.delete()
+            return Response({"detail": "Статья удалена из избранного"}, status=status.HTTP_204_NO_CONTENT)
+
+        return super().create(request, *args, **kwargs)
+
+    serializer_class = ArticleBookmarksSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
 
 class ArticleLikesViews(generics.CreateAPIView):
