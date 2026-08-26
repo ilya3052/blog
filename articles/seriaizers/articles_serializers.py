@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from articles.models import Article, Tag, ArticleComments, ArticleLikes
+from articles.models import Article, Tag, ArticleComments, ArticleLikes, ArticleBookmarks
 from users.models import CustomUser
 from users.serializers.user_serializer import UserSerializer
 
@@ -25,6 +25,20 @@ class ArticleCommentsSerializer(serializers.ModelSerializer):
         extra_kwargs = {'article': {'write_only': True}}
 
 
+class ArticleBookmarksSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    user_id = serializers.PrimaryKeyRelatedField(
+        queryset=CustomUser.objects.all(),
+        source='user',
+        write_only=True
+    )
+
+    class Meta:
+        model = ArticleBookmarks
+        fields = ('user', 'article', 'user_id')
+        extra_kwargs = {'article': {'write_only': True}}
+
+
 class ArticleLikesSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     user_id = serializers.PrimaryKeyRelatedField(
@@ -39,23 +53,78 @@ class ArticleLikesSerializer(serializers.ModelSerializer):
         extra_kwargs = {'article': {'write_only': True}}
 
 
-class ArticleSerializer(serializers.ModelSerializer):
-    likes = ArticleLikesSerializer(many=True, read_only=True)
+class ArticleStatsSerializer(serializers.Serializer):
+    likes_count = serializers.SerializerMethodField(read_only=True)
+    views_count = serializers.SerializerMethodField(read_only=True)
+    unique_views_count = serializers.SerializerMethodField(read_only=True)
+    comments_count = serializers.SerializerMethodField(read_only=True)
+    reading_time = serializers.SerializerMethodField(read_only=True)
 
-    tags = TagSerializer(many=True, read_only=True)
-    tags_ids = serializers.PrimaryKeyRelatedField(
+    def get_likes_count(self, obj):
+        return obj.likes.count()
+
+    def get_views_count(self, obj):
+        return obj.views
+
+    def get_unique_views_count(self, obj):
+        return obj.unique_views.count()
+
+    def get_comments_count(self, obj):
+        return obj.comments.count()
+
+    def get_reading_time(self, obj):
+        return obj.reading_time
+
+
+class ArticleCreateSerializer(serializers.ModelSerializer):
+    tags = serializers.PrimaryKeyRelatedField(
         queryset=Tag.objects.all(),
-        source='tags',
         many=True,
         write_only=True
-    )
-    author = UserSerializer(read_only=True)
-    author_id = serializers.PrimaryKeyRelatedField(
-        queryset=CustomUser.objects.all(),
-        write_only=True,
-        source='author'
     )
 
     class Meta:
         model = Article
-        fields = ('id', 'title', 'content', 'slug', 'tags', 'tags_ids', 'likes', 'author', 'author_id')
+        fields = ('id', 'title', 'content', 'slug', 'created_at', 'tags', 'author_id')
+
+
+class ArticleShortInfoSerializer(serializers.ModelSerializer):
+    content = serializers.SerializerMethodField(read_only=True)
+    tags = TagSerializer(many=True, read_only=True)
+    author = UserSerializer(read_only=True)
+    stats = serializers.SerializerMethodField(read_only=True)
+
+    def get_content(self, obj):
+        if not hasattr(obj, 'content'):
+            return ''
+        return f'{obj.content[:150]}...'
+
+    def get_stats(self, obj):
+        return ArticleStatsSerializer(obj).data
+
+    class Meta:
+        model = Article
+        fields = ('id', 'title', 'content', 'slug', 'created_at', 'tags', 'author', 'stats')
+
+
+class ArticleDetailInfoSerializer(serializers.ModelSerializer):
+    tags = TagSerializer(many=True, read_only=True)
+    author = UserSerializer(read_only=True)
+
+    stats = serializers.SerializerMethodField(read_only=True)
+    is_liked = serializers.SerializerMethodField(read_only=True)
+    is_bookmarked = serializers.SerializerMethodField(read_only=True)
+
+    def get_stats(self, obj):
+        return ArticleStatsSerializer(obj).data
+
+    def get_is_liked(self, obj):
+        return ArticleLikes.objects.filter(article=obj, user=self.context.get('request').user).exists()
+
+    def get_is_bookmarked(self, obj):
+        return ArticleBookmarks.objects.filter(article=obj, user=self.context.get('request').user).exists()
+
+    class Meta:
+        model = Article
+        fields = ('id', 'title', 'content', 'slug', 'created_at', 'updated_at', 'status', 'tags', 'author', 'stats',
+                  'is_liked', 'is_bookmarked')

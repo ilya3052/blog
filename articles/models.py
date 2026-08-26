@@ -7,19 +7,28 @@ from unidecode import unidecode
 
 user = get_user_model()
 
+READING_SPEED_IN_WORDS_PER_MINUTE = 200
+
 
 class Article(models.Model):
+    STATUS = {"PUBLISHED": "PUBLISHED", "DRAFT": "DRAFT"}
     title = models.CharField(max_length=200)
     content = models.TextField()
     tags = models.ManyToManyField('Tag', related_name='articles')
     author = models.ForeignKey(user, on_delete=models.CASCADE, related_name='articles')
     slug = models.SlugField(max_length=255, unique=True, db_index=True, blank=True)
+    status = models.CharField(choices=STATUS.items(), max_length=9, default=STATUS["DRAFT"])
+    views = models.IntegerField(default=0)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    @property
+    def reading_time(self):
+        return len(self.content.split()) // READING_SPEED_IN_WORDS_PER_MINUTE + 1
+
     def __str__(self):
-        return self.title
+        return self.slug
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -64,3 +73,23 @@ class ArticleLikes(models.Model):
 
     class Meta:
         db_table = 'article_likes'
+
+
+class ArticleBookmarks(models.Model):
+    pk = models.CompositePrimaryKey('article_id', 'user_id')
+
+    article = models.ForeignKey('Article', on_delete=models.CASCADE, related_name='bookmarks')
+    user = models.ForeignKey(user, on_delete=models.CASCADE, related_name='bookmarks')
+
+    class Meta:
+        db_table = 'article_bookmarks'
+
+
+class ArticleUniqueViews(models.Model):
+    pk = models.CompositePrimaryKey('article_id', 'user_id')
+
+    article = models.ForeignKey('Article', on_delete=models.CASCADE, related_name='unique_views')
+    user = models.ForeignKey(user, on_delete=models.CASCADE)
+
+    class Meta:
+        db_table = 'article_unique_views'

@@ -27,8 +27,9 @@ def article_publicated(sender, instance, created, **kwargs):
         subscriptions__subscribed_to=instance.author,
         subscriptions__notifications=True
     )
+    article_id = instance.pk
     notifications = Notifications.objects.bulk_create(
-        [Notifications(recipient=user, article=instance) for user in followers]
+        [Notifications(recipient=user, article_id=article_id) for user in followers]
     )
     channel = 'notifications:user'
     for notification in notifications:
