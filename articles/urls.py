@@ -10,10 +10,11 @@ urlpatterns = [
     path('', ArticlesCreateViews.as_view(), name='articles-create'),
     path('user/<str:username>/', UserArticlesViews.as_view(), name='user-articles'),
     path('slug/<str:slug>/', ArticlesViews.as_view(), name='article-detail-info'),
-    path('<int:pk>/bookmarks/', ArticleBookmarksViews.as_view(), name='article-bookmarks'),
 
-    path('<int:pk>/likes/', ArticleLikesViews.as_view(), name='articles-like'),
+    path('<int:pk>/bookmark/', ArticleBookmarksViews.as_view(), name='article-bookmarks'),
 
-    path('<int:pk>/comments/', ArticleCommentsViews.as_view(), name='articles-comment'),
-    path('<int:pk>/comments/<int:comment_id>/replies/', ArticleCommentsRepliesViews.as_view(), name='comment-replies'),
+    path('<int:pk>/like/', ArticleLikesViews.as_view(), name='articles-like'),
+
+    path('<int:pk>/comment/', ArticleCommentsViews.as_view(), name='articles-comment'),
+    path('<int:pk>/comment/<int:comment_id>/replies/', ArticleCommentsRepliesViews.as_view(), name='comment-replies'),
 ]
