@@ -75,7 +75,21 @@ class ArticleLikes(models.Model):
         db_table = 'article_likes'
 
 
+class ArticleBookmarks(models.Model):
+    pk = models.CompositePrimaryKey('article_id', 'user_id')
+
+    article = models.ForeignKey('Article', on_delete=models.CASCADE, related_name='bookmarks')
+    user = models.ForeignKey(user, on_delete=models.CASCADE, related_name='bookmarks')
+
+    class Meta:
+        db_table = 'article_bookmarks'
+
+
 class ArticleUniqueViews(models.Model):
     pk = models.CompositePrimaryKey('article_id', 'user_id')
+
     article = models.ForeignKey('Article', on_delete=models.CASCADE, related_name='unique_views')
     user = models.ForeignKey(user, on_delete=models.CASCADE)
+
+    class Meta:
+        db_table = 'article_unique_views'
