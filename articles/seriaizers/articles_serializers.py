@@ -39,7 +39,55 @@ class ArticleLikesSerializer(serializers.ModelSerializer):
         extra_kwargs = {'article': {'write_only': True}}
 
 
-class ArticleSerializer(serializers.ModelSerializer):
+class ArticleStatsSerializer(serializers.Serializer):
+    likes_count = serializers.SerializerMethodField(read_only=True)
+    views_count = serializers.SerializerMethodField(read_only=True)
+    unique_views_count = serializers.SerializerMethodField(read_only=True)
+    comments_count = serializers.SerializerMethodField(read_only=True)
+    reading_time = serializers.SerializerMethodField(read_only=True)
+
+    def get_likes_count(self, obj):
+        return obj.likes.count()
+
+    def get_views_count(self, obj):
+        return obj.views
+
+    def get_unique_views_count(self, obj):
+        return obj.unique_views.count()
+
+    def get_comments_count(self, obj):
+        return obj.comments.count()
+
+    def get_reading_time(self, obj):
+        return obj.reading_time
+
+
+class ArticleCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Article
+        fields = ('id', 'title', 'content', 'slug', 'created_at', 'tags', 'author')
+
+
+class ArticleShortInfoSerializer(serializers.ModelSerializer):
+    content = serializers.SerializerMethodField(read_only=True)
+    tags = TagSerializer(many=True, read_only=True)
+    author = UserSerializer(read_only=True)
+    stats = serializers.SerializerMethodField(read_only=True)
+
+    def get_content(self, obj):
+        if not hasattr(obj, 'content'):
+            return ''
+        return f'{obj.content[:150]}...'
+
+    def get_stats(self, obj):
+        return ArticleStatsSerializer(obj).data
+
+    class Meta:
+        model = Article
+        fields = ('id', 'title', 'content', 'slug', 'created_at', 'tags', 'author', 'stats')
+
+
+class ArticleDetailInfoSerializer(serializers.ModelSerializer):
     likes = ArticleLikesSerializer(many=True, read_only=True)
 
     tags = TagSerializer(many=True, read_only=True)
@@ -56,6 +104,12 @@ class ArticleSerializer(serializers.ModelSerializer):
         source='author'
     )
 
+    stats = serializers.SerializerMethodField(read_only=True)
+
+    def get_stats(self, obj):
+        return ArticleStatsSerializer(obj).data
+
     class Meta:
         model = Article
-        fields = ('id', 'title', 'content', 'slug', 'tags', 'tags_ids', 'likes', 'author', 'author_id')
+        fields = ('id', 'title', 'content', 'slug', 'created_at', 'updated_at', 'status', 'tags', 'tags_ids', 'likes',
+                  'author', 'author_id', 'stats')
