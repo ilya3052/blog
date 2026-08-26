@@ -18,16 +18,17 @@ class Article(models.Model):
     author = models.ForeignKey(user, on_delete=models.CASCADE, related_name='articles')
     slug = models.SlugField(max_length=255, unique=True, db_index=True, blank=True)
     status = models.CharField(choices=STATUS.items(), max_length=9, default=STATUS["DRAFT"])
+    views = models.IntegerField(default=0)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     @property
     def reading_time(self):
-        return len(self.content.split()) // READING_SPEED_IN_WORDS_PER_MINUTE
+        return len(self.content.split()) // READING_SPEED_IN_WORDS_PER_MINUTE + 1
 
     def __str__(self):
-        return self.title
+        return self.slug
 
     def save(self, *args, **kwargs):
         if not self.slug:
