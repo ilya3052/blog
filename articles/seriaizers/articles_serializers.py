@@ -63,9 +63,14 @@ class ArticleStatsSerializer(serializers.Serializer):
 
 
 class ArticleCreateSerializer(serializers.ModelSerializer):
+    tags = serializers.PrimaryKeyRelatedField(
+        queryset=Tag.objects.all(),
+        many=True,
+        write_only=True
+    )
     class Meta:
         model = Article
-        fields = ('id', 'title', 'content', 'slug', 'created_at', 'tags', 'author')
+        fields = ('id', 'title', 'content', 'slug', 'created_at', 'tags', 'author_id')
 
 
 class ArticleShortInfoSerializer(serializers.ModelSerializer):
