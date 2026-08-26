@@ -7,8 +7,8 @@ urlpatterns = [
     path('tags/', TagViews.as_view(), name='tags-create'),
 
     path('', ArticlesCreateViews.as_view(), name='articles-create'),
-    path('<str:username>/', UserArticlesViews.as_view(), name='user-articles'),
-    path('<str:slug>/', ArticlesViews.as_view(), name='articles-actions'),
+    path('user/<str:username>/', UserArticlesViews.as_view(), name='user-articles'),
+    path('slug/<str:slug>/', ArticlesViews.as_view(), name='article-detail-info'),
 
     path('<int:pk>/likes/set/', ArticleLikesViews.as_view(), name='articles-like'),
 
