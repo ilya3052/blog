@@ -88,42 +88,32 @@ class ArticleCreateSerializer(serializers.ModelSerializer):
         fields = ('id', 'title', 'content', 'slug', 'created_at', 'tags', 'author_id')
 
 
-class ArticleShortInfoSerializer(serializers.ModelSerializer):
-    content = serializers.SerializerMethodField(read_only=True)
+class ArticleBaseSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True, read_only=True)
     author = UserSerializer(read_only=True)
     stats = serializers.SerializerMethodField(read_only=True)
+    is_liked = serializers.BooleanField()
+    is_bookmarked = serializers.BooleanField()
+
+    def get_stats(self, obj):
+        return ArticleStatsSerializer(obj).data
+
+
+class ArticleShortInfoSerializer(ArticleBaseSerializer):
+    content = serializers.SerializerMethodField(read_only=True)
 
     def get_content(self, obj):
         if not hasattr(obj, 'content'):
             return ''
         return f'{obj.content[:150]}...'
 
-    def get_stats(self, obj):
-        return ArticleStatsSerializer(obj).data
-
     class Meta:
         model = Article
-        fields = ('id', 'title', 'content', 'slug', 'created_at', 'tags', 'author', 'stats')
+        fields = ('id', 'title', 'content', 'slug', 'created_at', 'tags', 'author', 'stats', 'is_liked',
+                  'is_bookmarked')
 
 
-class ArticleDetailInfoSerializer(serializers.ModelSerializer):
-    tags = TagSerializer(many=True, read_only=True)
-    author = UserSerializer(read_only=True)
-
-    stats = serializers.SerializerMethodField(read_only=True)
-    is_liked = serializers.SerializerMethodField(read_only=True)
-    is_bookmarked = serializers.SerializerMethodField(read_only=True)
-
-    def get_stats(self, obj):
-        return ArticleStatsSerializer(obj).data
-
-    def get_is_liked(self, obj):
-        return ArticleLikes.objects.filter(article=obj, user=self.context.get('request').user).exists()
-
-    def get_is_bookmarked(self, obj):
-        return ArticleBookmarks.objects.filter(article=obj, user=self.context.get('request').user).exists()
-
+class ArticleDetailInfoSerializer(ArticleBaseSerializer):
     class Meta:
         model = Article
         fields = ('id', 'title', 'content', 'slug', 'created_at', 'updated_at', 'status', 'tags', 'author', 'stats',
