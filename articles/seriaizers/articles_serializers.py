@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from articles.models import Article, Tag, ArticleComments, ArticleLikes, ArticleBookmarks
+from articles.signals import article_published
 from users.models import CustomUser
 from users.serializers.user_serializer import UserSerializer
 
@@ -114,6 +115,14 @@ class ArticleShortInfoSerializer(ArticleBaseSerializer):
 
 
 class ArticleDetailInfoSerializer(ArticleBaseSerializer):
+    def update(self, instance, validated_data):
+        old_status = instance.status
+        new_status = validated_data.get('status', old_status)
+        instance = super().update(instance, validated_data)
+        if old_status != 'PUBLISHED' and new_status == 'PUBLISHED':
+            article_published.send(sender=Article, instance=instance)
+        return instance
+
     class Meta:
         model = Article
         fields = ('id', 'title', 'content', 'slug', 'created_at', 'updated_at', 'status', 'tags', 'author', 'stats',
