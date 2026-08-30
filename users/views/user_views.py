@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from articles.permissions import ReadOnly
 from shared.permissions import IsItself
 from users.models import CustomUser, Subscription
-from users.serializers.user_serializer import UserSerializer, SubscriptionSerializer
+from users.serializers.user_serializer import UserInfoSerializer, SubscriptionSerializer, BaseUserSerializer
 
 
 class UserInfoView(generics.RetrieveUpdateDestroyAPIView):
@@ -22,7 +22,7 @@ class UserInfoView(generics.RetrieveUpdateDestroyAPIView):
         return [perm() for perm in permissions]
 
     queryset = CustomUser.objects.all()
-    serializer_class = UserSerializer
+    serializer_class = UserInfoSerializer
 
     def get_object(self):
         return get_object_or_404(CustomUser, username=self.kwargs['username'])
@@ -37,16 +37,16 @@ class UserInfoView(generics.RetrieveUpdateDestroyAPIView):
         ).order_by().values('subscriber_id').annotate(count=Count('*')).values('count')
 
         user_info = get_object_or_404(CustomUser.objects
-                                      .annotate(
-                                        is_subscribed=Exists(
-                                            Subscription.objects.filter(
-                                                subscribed_to_id=OuterRef('pk'),
-                                                subscriber_id=request.user.id)
-                                        ),
-                                        articles_count=Count('articles', distinct=True),
-                                        followers_count=Subquery(followers_count),
-                                        subscriptions_count=Subquery(subscriptions_count)
-                                    ), username=self.kwargs['username'])
+        .annotate(
+            is_subscribed=Exists(
+                Subscription.objects.filter(
+                    subscribed_to_id=OuterRef('pk'),
+                    subscriber_id=request.user.id)
+            ),
+            articles_count=Count('articles', distinct=True),
+            followers_count=Subquery(followers_count),
+            subscriptions_count=Subquery(subscriptions_count)
+        ), username=self.kwargs['username'])
         serializer = self.get_serializer(user_info, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -73,7 +73,7 @@ class SubscriptionView(generics.ListCreateAPIView):
         followers = CustomUser.objects.filter(
             id__in=user.subscribers.values('subscriber_id')
         )
-        serializer = UserSerializer(followers, many=True, context={'request': self.request})
+        serializer = BaseUserSerializer(followers, many=True, context={'request': self.request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     serializer_class = SubscriptionSerializer
@@ -88,6 +88,6 @@ class MySubscriptionsView(generics.ListAPIView):
             id__in=user.subscriptions.values('subscribed_to_id')
         )
 
-    serializer_class = UserSerializer
+    serializer_class = BaseUserSerializer
     permission_classes = [IsAuthenticated]
     pagination_class = None
