@@ -251,8 +251,7 @@ class UserArticlesViews(generics.ListAPIView):
         author = CustomUser.objects.filter(username=self.kwargs.get('username')).first()
         if not author:
             raise UserNotFoundError
-        return (Article.objects
-                .annotate(
+        return (Article.objects.annotate(
             is_liked=Exists(
                 ArticleLikes.objects.filter(
                     article=OuterRef('pk'),
@@ -264,10 +263,10 @@ class UserArticlesViews(generics.ListAPIView):
                     article=OuterRef('pk'),
                     user=user
                 )
+            ),
+            likes_count=Count('likes'),
+            unique_views_count=Count('unique_views'),
+            comments_count=Count('comments', distinct=True)
             )
-        )
                 .select_related('author')
-                .prefetch_related('comments')
-                .prefetch_related('likes')
-                .prefetch_related('unique_views')
-                .filter(author=author))
+                .filter(author=author, status='PUBLISHED'))
