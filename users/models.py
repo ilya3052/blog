@@ -28,4 +28,5 @@ class Subscription(models.Model):
         db_table = 'subscriptions'
         indexes = [
             models.Index(fields=['subscriber']),
+            models.Index(fields=['subscribed_to'])
         ]
