@@ -1,3 +1,4 @@
+from django.db import connection
 from rest_framework import serializers
 
 from users.models import CustomUser, Subscription
@@ -29,16 +30,13 @@ class UserStatsSerializer(serializers.Serializer):
 class UserSerializer(serializers.ModelSerializer):
     stats = serializers.SerializerMethodField(read_only=True)
     is_self = serializers.SerializerMethodField(read_only=True)
-    is_subscribed = serializers.SerializerMethodField(read_only=True)
+    is_subscribed = serializers.BooleanField(read_only=True)
 
     def get_stats(self, obj):
         return UserStatsSerializer(obj).data
 
     def get_is_self(self, obj):
         return self.context.get('request').user == obj
-
-    def get_is_subscribed(self, obj):
-        return obj.subscribers.filter(subscriber=self.context.get('request').user).exists()
 
     class Meta:
         model = CustomUser

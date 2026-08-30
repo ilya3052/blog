@@ -1,3 +1,6 @@
+from django.db import connection
+from django.db.models import Exists, OuterRef
+from icecream import ic
 from rest_framework import status, generics
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -30,11 +33,15 @@ class UserInfoView(generics.RetrieveUpdateDestroyAPIView):
                                       .prefetch_related('articles')
                                       .prefetch_related('likes')
                                       .prefetch_related('comments')
-                                      .prefetch_related('subscriptions')
-                                      .prefetch_related('subscribers__subscriber'),
+                                      .annotate(
+                                        is_subscribed=Exists(
+                                            Subscription.objects.filter(
+                                                subscribed_to_id=OuterRef('pk'),
+                                                subscriber_id=request.user.id)
+                                        )
+                                    ),
                                       username=self.kwargs['username'])
         serializer = self.get_serializer(user_info, context={'request': request})
-
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
