@@ -1,10 +1,12 @@
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, OuterRef, Count, F
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 
 from articles.exceptions import UserNotFoundError
-from articles.models import Article, Tag, ArticleComments, ArticleLikes, ArticleBookmarks
+from articles.filters import ArticleFilter
+from articles.models import Article, Tag, ArticleComments, ArticleLikes, ArticleBookmarks, ArticleUniqueViews
 from articles.permissions import ReadOnly, IsArticleOwner
 from articles.seriaizers.articles_serializers import ArticleCreateSerializer, TagSerializer, \
     ArticleCommentsSerializer, \
@@ -39,6 +41,8 @@ class ArticlesViews(generics.RetrieveUpdateAPIView):
 
     def get_queryset(self):
         user = self.request.user
+        if not user.is_authenticated:
+            user = None
         queryset = (
             Article.objects
             .annotate(
@@ -53,16 +57,23 @@ class ArticlesViews(generics.RetrieveUpdateAPIView):
                         article=OuterRef('pk'),
                         user=user
                     )
-                )
+                ),
+                likes_count=Count('likes'),
+                unique_views_count = Count('unique_views'),
+                comments_count = Count('comments', distinct=True)
             )
             .select_related('author')
-            .prefetch_related('comments')
-            .prefetch_related('likes')
-            .prefetch_related('unique_views')
-            .filter(slug=self.kwargs['slug']))
+            .filter(slug=self.kwargs['slug'], status='PUBLISHED'))
         return queryset
 
     def retrieve(self, request, *args, **kwargs):
+        obj = self.get_object()
+        if request.user.is_authenticated:
+            ArticleUniqueViews.objects.get_or_create(
+                article=obj,
+                user=request.user,
+            )
+        Article.objects.filter(pk=obj.pk).update(views=F('views') + 1)
         obj = self.get_object()
         serializer = self.get_serializer(obj)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -73,29 +84,28 @@ class ArticlesViews(generics.RetrieveUpdateAPIView):
 class ArticlesListView(generics.ListAPIView):  # заготовка для будущей ленты
     serializer_class = ArticleShortInfoSerializer
     permission_classes = [ReadOnly]
-
+    filter_backends = [DjangoFilterBackend,]
+    filterset_class = ArticleFilter
     def get_queryset(self):
         user = self.request.user
+        if not user.is_authenticated:
+            user = None
         queryset = (
             Article.objects
             .annotate(
                 is_liked=Exists(
-                    ArticleLikes.objects.filter(
-                        article=OuterRef('pk'),
-                        user=user
-                    )
+                    ArticleLikes.objects.filter(article=OuterRef('pk'),user=user)
                 ),
                 is_bookmarked=Exists(
-                    ArticleBookmarks.objects.filter(
-                        article=OuterRef('pk'),
-                        user=user
-                    )
-                )
+                    ArticleBookmarks.objects.filter(article=OuterRef('pk'),user=user)
+                ),
+                likes_count=Count('likes'),
+                unique_views_count=Count('unique_views'),
+                comments_count=Count('comments', distinct=True)
             )
             .select_related('author')
-            .prefetch_related('comments')
-            .prefetch_related('likes')
-            .prefetch_related('unique_views'))
+            .filter(status='PUBLISHED')
+        )
         return queryset
 
 
