@@ -1,7 +1,6 @@
 from django.db.models import Exists, OuterRef, Count, F
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, status
-from rest_framework.filters import OrderingFilter
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 
@@ -12,7 +11,7 @@ from articles.permissions import ReadOnly, IsArticleOwner
 from articles.seriaizers.articles_serializers import ArticleCreateSerializer, TagSerializer, \
     ArticleCommentsSerializer, \
     ArticleLikesSerializer, ArticleDetailInfoSerializer, ArticleShortInfoSerializer, ArticleBookmarksSerializer
-from users.models import CustomUser
+from users.models import CustomUser, Subscription
 
 
 class ArticlesListCreateViews(generics.ListCreateAPIView):
@@ -66,9 +65,39 @@ class ArticlesListCreateViews(generics.ListCreateAPIView):
         serializer.save(author_id=self.request.user.id)
 
 
+class ArticlesFeedViews(generics.ListAPIView):
+    serializer_class = ArticleShortInfoSerializer
+    permission_classes = [IsAuthenticated]
+
+    filter_backends = [DjangoFilterBackend, ]
+    filterset_class = ArticleFilter
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = (
+            Article.objects
+            .annotate(
+                is_liked=Exists(
+                    ArticleLikes.objects.filter(article=OuterRef('pk'), user=user)
+                ),
+                is_bookmarked=Exists(
+                    ArticleBookmarks.objects.filter(article=OuterRef('pk'), user=user)
+                ),
+                likes_count=Count('likes'),
+                unique_views_count=Count('unique_views'),
+                comments_count=Count('comments', distinct=True)
+            )
+            .select_related('author')
+            .filter(
+                author__in=Subscription.objects.filter(subscriber_id=user.pk).values_list('subscribed_to', flat=True),
+                status='PUBLISHED')
+            .order_by('-created_at')
+        )
+        return queryset
+
+
 class ArticlesViews(generics.RetrieveUpdateAPIView):
     serializer_class = ArticleDetailInfoSerializer
-    permission_classes = [ReadOnly]
 
     def get_permissions(self):
         if self.request.method == 'PATCH':
@@ -101,7 +130,9 @@ class ArticlesViews(generics.RetrieveUpdateAPIView):
                 comments_count=Count('comments', distinct=True)
             )
             .select_related('author')
-            .filter(slug=self.kwargs['slug'], status='PUBLISHED'))
+            .filter(slug=self.kwargs['slug']))
+        if self.request.method == 'GET':
+            queryset = queryset.filter(status='PUBLISHED')
         return queryset
 
     def retrieve(self, request, *args, **kwargs):

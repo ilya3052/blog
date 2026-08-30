@@ -2,12 +2,13 @@ from django.urls import path
 
 from articles.views.articles_views import ArticlesListCreateViews, ArticlesViews, \
     ArticleLikesViews, ArticleCommentsViews, TagViews, ArticleCommentsRepliesViews, UserArticlesViews, \
-    ArticleBookmarksViews
+    ArticleBookmarksViews, ArticlesFeedViews
 
 urlpatterns = [
     path('tags/', TagViews.as_view(), name='tags-create'),
 
     path('', ArticlesListCreateViews.as_view(), name='articles-list-create'),
+    path('feed/', ArticlesFeedViews.as_view(), name='articles-feed'),
     path('user/<str:username>/', UserArticlesViews.as_view(), name='user-articles'),
     path('slug/<str:slug>/', ArticlesViews.as_view(), name='article-detail-info'),
 
