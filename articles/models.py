@@ -56,7 +56,7 @@ class Tag(models.Model):
 class ArticleComments(MPTTModel):
     content = models.TextField()
     added_at = models.DateTimeField(auto_now_add=True)
-    author = models.ForeignKey(user, on_delete=models.CASCADE, related_name='comments')
+    user = models.ForeignKey(user, on_delete=models.CASCADE, related_name='comments')
     article = models.ForeignKey('Article', related_name='comments', on_delete=models.CASCADE)
 
     parent = TreeForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')

@@ -1,8 +1,6 @@
 import json
-from types import UnionType
 
-from django.db.models.signals import post_save
-from django.dispatch import receiver
+from django.dispatch import receiver, Signal
 from redis import Redis
 
 from articles.models import Article
@@ -11,6 +9,7 @@ from shared.config import Config
 from users.models import CustomUser
 
 config = Config.load()
+article_published = Signal()
 
 redis_conn = Redis(
     host=config.redis.host,
@@ -21,8 +20,8 @@ redis_conn = Redis(
 )
 
 
-@receiver(post_save, sender=Article)
-def article_publicated(sender, instance, created, **kwargs):
+@receiver(article_published, sender=Article)
+def article_publicated(sender, instance, **kwargs):
     followers = CustomUser.objects.filter(
         subscriptions__subscribed_to=instance.author,
         subscriptions__notifications=True
