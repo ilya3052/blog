@@ -1,20 +1,59 @@
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, OuterRef, Count, F
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 
 from articles.exceptions import UserNotFoundError
-from articles.models import Article, Tag, ArticleComments, ArticleLikes, ArticleBookmarks
+from articles.filters import ArticleFilter
+from articles.models import Article, Tag, ArticleComments, ArticleLikes, ArticleBookmarks, ArticleUniqueViews
 from articles.permissions import ReadOnly, IsArticleOwner
 from articles.seriaizers.articles_serializers import ArticleCreateSerializer, TagSerializer, \
     ArticleCommentsSerializer, \
     ArticleLikesSerializer, ArticleDetailInfoSerializer, ArticleShortInfoSerializer, ArticleBookmarksSerializer
-from users.models import CustomUser
+from users.models import CustomUser, Subscription
 
 
-class ArticlesCreateViews(generics.CreateAPIView):
-    serializer_class = ArticleCreateSerializer
-    permission_classes = [IsAuthenticated]
+class ArticlesListCreateViews(generics.ListCreateAPIView):
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return ArticleCreateSerializer
+        else:
+            return ArticleShortInfoSerializer
+
+    def get_permissions(self):
+        permissions = None
+        if self.request.method == 'POST':
+            permissions = [IsAuthenticated]
+        else:
+            permissions = [ReadOnly]
+        return [permission() for permission in permissions]
+
+    filter_backends = [DjangoFilterBackend, ]
+    filterset_class = ArticleFilter
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            user = None
+        queryset = (
+            Article.objects
+            .annotate(
+                is_liked=Exists(
+                    ArticleLikes.objects.filter(article=OuterRef('pk'), user=user)
+                ),
+                is_bookmarked=Exists(
+                    ArticleBookmarks.objects.filter(article=OuterRef('pk'), user=user)
+                ),
+                likes_count=Count('likes'),
+                unique_views_count=Count('unique_views'),
+                comments_count=Count('comments', distinct=True)
+            )
+            .select_related('author')
+            .filter(status='PUBLISHED')
+            .order_by('-created_at')
+        )
+        return queryset
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -26,9 +65,39 @@ class ArticlesCreateViews(generics.CreateAPIView):
         serializer.save(author_id=self.request.user.id)
 
 
+class ArticlesFeedViews(generics.ListAPIView):
+    serializer_class = ArticleShortInfoSerializer
+    permission_classes = [IsAuthenticated]
+
+    filter_backends = [DjangoFilterBackend, ]
+    filterset_class = ArticleFilter
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = (
+            Article.objects
+            .annotate(
+                is_liked=Exists(
+                    ArticleLikes.objects.filter(article=OuterRef('pk'), user=user)
+                ),
+                is_bookmarked=Exists(
+                    ArticleBookmarks.objects.filter(article=OuterRef('pk'), user=user)
+                ),
+                likes_count=Count('likes'),
+                unique_views_count=Count('unique_views'),
+                comments_count=Count('comments', distinct=True)
+            )
+            .select_related('author')
+            .filter(
+                author__in=Subscription.objects.filter(subscriber_id=user.pk).values_list('subscribed_to', flat=True),
+                status='PUBLISHED')
+            .order_by('-created_at')
+        )
+        return queryset
+
+
 class ArticlesViews(generics.RetrieveUpdateAPIView):
     serializer_class = ArticleDetailInfoSerializer
-    permission_classes = [ReadOnly]
 
     def get_permissions(self):
         if self.request.method == 'PATCH':
@@ -39,6 +108,8 @@ class ArticlesViews(generics.RetrieveUpdateAPIView):
 
     def get_queryset(self):
         user = self.request.user
+        if not user.is_authenticated:
+            user = None
         queryset = (
             Article.objects
             .annotate(
@@ -53,50 +124,30 @@ class ArticlesViews(generics.RetrieveUpdateAPIView):
                         article=OuterRef('pk'),
                         user=user
                     )
-                )
+                ),
+                likes_count=Count('likes'),
+                unique_views_count=Count('unique_views'),
+                comments_count=Count('comments', distinct=True)
             )
             .select_related('author')
-            .prefetch_related('comments')
-            .prefetch_related('likes')
-            .prefetch_related('unique_views')
             .filter(slug=self.kwargs['slug']))
+        if self.request.method == 'GET':
+            queryset = queryset.filter(status='PUBLISHED')
         return queryset
 
     def retrieve(self, request, *args, **kwargs):
+        obj = self.get_object()
+        if request.user.is_authenticated:
+            ArticleUniqueViews.objects.get_or_create(
+                article=obj,
+                user=request.user,
+            )
+        Article.objects.filter(pk=obj.pk).update(views=F('views') + 1)
         obj = self.get_object()
         serializer = self.get_serializer(obj)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     lookup_field = 'slug'
-
-
-class ArticlesListView(generics.ListAPIView):  # заготовка для будущей ленты
-    serializer_class = ArticleShortInfoSerializer
-    permission_classes = [ReadOnly]
-
-    def get_queryset(self):
-        user = self.request.user
-        queryset = (
-            Article.objects
-            .annotate(
-                is_liked=Exists(
-                    ArticleLikes.objects.filter(
-                        article=OuterRef('pk'),
-                        user=user
-                    )
-                ),
-                is_bookmarked=Exists(
-                    ArticleBookmarks.objects.filter(
-                        article=OuterRef('pk'),
-                        user=user
-                    )
-                )
-            )
-            .select_related('author')
-            .prefetch_related('comments')
-            .prefetch_related('likes')
-            .prefetch_related('unique_views'))
-        return queryset
 
 
 class TagViews(generics.ListCreateAPIView):
