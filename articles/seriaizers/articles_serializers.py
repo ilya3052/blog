@@ -42,26 +42,11 @@ class ArticleLikesSerializer(ArticleUserMixinSerializer, serializers.ModelSerial
 
 
 class ArticleStatsSerializer(serializers.Serializer):
-    likes_count = serializers.SerializerMethodField(read_only=True)
-    views_count = serializers.SerializerMethodField(read_only=True)
-    unique_views_count = serializers.SerializerMethodField(read_only=True)
-    comments_count = serializers.SerializerMethodField(read_only=True)
-    reading_time = serializers.SerializerMethodField(read_only=True)
-
-    def get_likes_count(self, obj):
-        return obj.likes.count()
-
-    def get_views_count(self, obj):
-        return obj.views
-
-    def get_unique_views_count(self, obj):
-        return obj.unique_views.count()
-
-    def get_comments_count(self, obj):
-        return obj.comments.count()
-
-    def get_reading_time(self, obj):
-        return obj.reading_time
+    likes_count = serializers.IntegerField(read_only=True)
+    views_count = serializers.IntegerField(read_only=True, source='views')
+    unique_views_count = serializers.IntegerField(read_only=True)
+    comments_count = serializers.IntegerField(read_only=True)
+    reading_time = serializers.IntegerField(read_only=True)
 
 
 class ArticleCreateSerializer(serializers.ModelSerializer):
@@ -86,6 +71,9 @@ class ArticleBaseSerializer(serializers.ModelSerializer):
     def get_stats(self, obj):
         return ArticleStatsSerializer(obj).data
 
+    class Meta:
+        model = Article
+        fields = ('id', 'title', 'content', 'slug', 'created_at', 'tags', 'author', 'stats', 'is_liked', 'is_bookmarked')
 
 class ArticleShortInfoSerializer(ArticleBaseSerializer):
     content = serializers.SerializerMethodField(read_only=True)
@@ -94,11 +82,6 @@ class ArticleShortInfoSerializer(ArticleBaseSerializer):
         if not hasattr(obj, 'content'):
             return ''
         return f'{obj.content[:150]}...'
-
-    class Meta:
-        model = Article
-        fields = ('id', 'title', 'content', 'slug', 'created_at', 'tags', 'author', 'stats', 'is_liked',
-                  'is_bookmarked')
 
 
 class ArticleDetailInfoSerializer(ArticleBaseSerializer):
@@ -110,7 +93,5 @@ class ArticleDetailInfoSerializer(ArticleBaseSerializer):
             article_published.send(sender=Article, instance=instance)
         return instance
 
-    class Meta:
-        model = Article
-        fields = ('id', 'title', 'content', 'slug', 'created_at', 'updated_at', 'status', 'tags', 'author', 'stats',
-                  'is_liked', 'is_bookmarked')
+    class Meta(ArticleBaseSerializer.Meta):
+        fields = ArticleBaseSerializer.Meta.fields + ('status', 'updated_at')
