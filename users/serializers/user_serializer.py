@@ -5,26 +5,9 @@ from users.models import CustomUser, Subscription
 
 
 class UserStatsSerializer(serializers.Serializer):
-    articles_count = serializers.SerializerMethodField(read_only=True)
-    likes_count = serializers.SerializerMethodField(read_only=True)
-    comments_count = serializers.SerializerMethodField(read_only=True)
-    subscribers_count = serializers.SerializerMethodField(read_only=True)
-    subscriptions_count = serializers.SerializerMethodField(read_only=True)
-
-    def get_articles_count(self, obj):
-        return obj.articles.count()
-
-    def get_likes_count(self, obj):
-        return obj.likes.count()
-
-    def get_comments_count(self, obj):
-        return obj.comments.count()
-
-    def get_subscribers_count(self, obj):
-        return obj.subscribers.count()
-
-    def get_subscriptions_count(self, obj):
-        return obj.subscriptions.count()
+    articles_count = serializers.IntegerField(read_only=True)
+    followers_count = serializers.IntegerField(read_only=True)
+    subscriptions_count = serializers.IntegerField(read_only=True)
 
 
 class UserSerializer(serializers.ModelSerializer):

@@ -1,6 +1,5 @@
-from django.db import connection
-from django.db.models import Exists, OuterRef
-from icecream import ic
+from django.db.models import Exists, OuterRef, Subquery
+from django.db.models.aggregates import Count
 from rest_framework import status, generics
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -29,18 +28,25 @@ class UserInfoView(generics.RetrieveUpdateDestroyAPIView):
         return get_object_or_404(CustomUser, username=self.kwargs['username'])
 
     def retrieve(self, request, *args, **kwargs):
+        followers_count = Subscription.objects.filter(
+            subscribed_to_id=OuterRef('pk')
+        ).order_by().values('subscribed_to_id').annotate(count=Count('*')).values('count')
+
+        subscriptions_count = Subscription.objects.filter(
+            subscriber_id=OuterRef('pk')
+        ).order_by().values('subscriber_id').annotate(count=Count('*')).values('count')
+
         user_info = get_object_or_404(CustomUser.objects
-                                      .prefetch_related('articles')
-                                      .prefetch_related('likes')
-                                      .prefetch_related('comments')
                                       .annotate(
                                         is_subscribed=Exists(
                                             Subscription.objects.filter(
                                                 subscribed_to_id=OuterRef('pk'),
                                                 subscriber_id=request.user.id)
-                                        )
-                                    ),
-                                      username=self.kwargs['username'])
+                                        ),
+                                        articles_count=Count('articles', distinct=True),
+                                        followers_count=Subquery(followers_count),
+                                        subscriptions_count=Subquery(subscriptions_count)
+                                    ), username=self.kwargs['username'])
         serializer = self.get_serializer(user_info, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -67,7 +73,7 @@ class SubscriptionView(generics.ListCreateAPIView):
         followers = CustomUser.objects.filter(
             id__in=user.subscribers.values('subscriber_id')
         )
-        serializer = UserSerializer(followers, many=True)
+        serializer = UserSerializer(followers, many=True, context={'request': self.request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     serializer_class = SubscriptionSerializer
