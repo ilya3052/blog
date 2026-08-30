@@ -1,6 +1,7 @@
 from django.db.models import Exists, OuterRef, Count, F
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, status
+from rest_framework.filters import OrderingFilter
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 
@@ -14,9 +15,46 @@ from articles.seriaizers.articles_serializers import ArticleCreateSerializer, Ta
 from users.models import CustomUser
 
 
-class ArticlesCreateViews(generics.CreateAPIView):
-    serializer_class = ArticleCreateSerializer
-    permission_classes = [IsAuthenticated]
+class ArticlesListCreateViews(generics.ListCreateAPIView):
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return ArticleCreateSerializer
+        else:
+            return ArticleShortInfoSerializer
+
+    def get_permissions(self):
+        permissions = None
+        if self.request.method == 'POST':
+            permissions = [IsAuthenticated]
+        else:
+            permissions = [ReadOnly]
+        return [permission() for permission in permissions]
+
+    filter_backends = [DjangoFilterBackend, ]
+    filterset_class = ArticleFilter
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            user = None
+        queryset = (
+            Article.objects
+            .annotate(
+                is_liked=Exists(
+                    ArticleLikes.objects.filter(article=OuterRef('pk'), user=user)
+                ),
+                is_bookmarked=Exists(
+                    ArticleBookmarks.objects.filter(article=OuterRef('pk'), user=user)
+                ),
+                likes_count=Count('likes'),
+                unique_views_count=Count('unique_views'),
+                comments_count=Count('comments', distinct=True)
+            )
+            .select_related('author')
+            .filter(status='PUBLISHED')
+            .order_by('-created_at')
+        )
+        return queryset
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -59,8 +97,8 @@ class ArticlesViews(generics.RetrieveUpdateAPIView):
                     )
                 ),
                 likes_count=Count('likes'),
-                unique_views_count = Count('unique_views'),
-                comments_count = Count('comments', distinct=True)
+                unique_views_count=Count('unique_views'),
+                comments_count=Count('comments', distinct=True)
             )
             .select_related('author')
             .filter(slug=self.kwargs['slug'], status='PUBLISHED'))
@@ -79,34 +117,6 @@ class ArticlesViews(generics.RetrieveUpdateAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     lookup_field = 'slug'
-
-
-class ArticlesListView(generics.ListAPIView):  # заготовка для будущей ленты
-    serializer_class = ArticleShortInfoSerializer
-    permission_classes = [ReadOnly]
-    filter_backends = [DjangoFilterBackend,]
-    filterset_class = ArticleFilter
-    def get_queryset(self):
-        user = self.request.user
-        if not user.is_authenticated:
-            user = None
-        queryset = (
-            Article.objects
-            .annotate(
-                is_liked=Exists(
-                    ArticleLikes.objects.filter(article=OuterRef('pk'),user=user)
-                ),
-                is_bookmarked=Exists(
-                    ArticleBookmarks.objects.filter(article=OuterRef('pk'),user=user)
-                ),
-                likes_count=Count('likes'),
-                unique_views_count=Count('unique_views'),
-                comments_count=Count('comments', distinct=True)
-            )
-            .select_related('author')
-            .filter(status='PUBLISHED')
-        )
-        return queryset
 
 
 class TagViews(generics.ListCreateAPIView):
