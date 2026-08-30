@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'social_auth',
     'notifications',
 
+    'django_filters',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
