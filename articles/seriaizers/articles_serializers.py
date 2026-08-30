@@ -3,7 +3,7 @@ from rest_framework import serializers
 from articles.models import Article, Tag, ArticleComments, ArticleLikes, ArticleBookmarks
 from articles.signals import article_published
 from users.models import CustomUser
-from users.serializers.user_serializer import UserSerializer
+from users.serializers.user_serializer import BaseUserSerializer
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -13,7 +13,7 @@ class TagSerializer(serializers.ModelSerializer):
 
 
 class ArticleUserMixinSerializer(serializers.Serializer):
-    user = UserSerializer(read_only=True)
+    user = BaseUserSerializer(read_only=True)
     user_id = serializers.PrimaryKeyRelatedField(
         queryset=CustomUser.objects.all(),
         source='user',
@@ -63,7 +63,7 @@ class ArticleCreateSerializer(serializers.ModelSerializer):
 
 class ArticleBaseSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True, read_only=True)
-    author = UserSerializer(read_only=True)
+    author = BaseUserSerializer(read_only=True)
     stats = serializers.SerializerMethodField(read_only=True)
     is_liked = serializers.BooleanField()
     is_bookmarked = serializers.BooleanField()
