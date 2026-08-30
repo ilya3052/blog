@@ -117,13 +117,22 @@ class ArticleCommentsViews(generics.ListCreateAPIView):
         return [permission() for permission in permissions]
 
     def get_queryset(self):
-        queryset = ArticleComments.objects.select_related('author').filter(article_id=self.kwargs['pk'], parent=None)
+        queryset = ArticleComments.objects.select_related('user').filter(article_id=self.kwargs['pk'], parent=None)
         return queryset
 
     def create(self, request, *args, **kwargs):
         article_id = self.kwargs['pk']
         request.data['article'] = article_id
-        request.data['author_id'] = request.user.id
+        request.data['user_id'] = request.user.id
+        if 'parent' in request.data:
+            parent_id = request.data['parent']
+            parent_comment = ArticleComments.objects.filter(pk=parent_id).values('article_id').first()
+            if not parent_comment:
+                return Response({'detail': 'Родительский комментарий не найден'},
+                                status=status.HTTP_404_NOT_FOUND)
+            elif parent_comment['article_id'] != article_id:
+                return Response({'detail': 'Родительский комментарий не принадлежит этой статье'},
+                                status=status.HTTP_400_BAD_REQUEST)
         return super().create(request, *args, **kwargs)
 
     serializer_class = ArticleCommentsSerializer

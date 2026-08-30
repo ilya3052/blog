@@ -12,46 +12,33 @@ class TagSerializer(serializers.ModelSerializer):
         fields = ('id', 'name')
 
 
-class ArticleCommentsSerializer(serializers.ModelSerializer):
-    author = UserSerializer(read_only=True)
-    author_id = serializers.PrimaryKeyRelatedField(
+class ArticleUserMixinSerializer(serializers.Serializer):
+    user = UserSerializer(read_only=True)
+    user_id = serializers.PrimaryKeyRelatedField(
         queryset=CustomUser.objects.all(),
-        source='author',
+        source='user',
         write_only=True
     )
 
     class Meta:
+        fields = ('user', 'article', 'user_id')
+        extra_kwargs = {'article': {'write_only': True}}
+
+
+class ArticleCommentsSerializer(ArticleUserMixinSerializer, serializers.ModelSerializer):
+    class Meta(ArticleUserMixinSerializer.Meta):
         model = ArticleComments
-        fields = ('id', 'content', 'added_at', 'author', 'article', 'author_id', 'parent')
-        extra_kwargs = {'article': {'write_only': True}}
+        fields = ArticleUserMixinSerializer.Meta.fields + ('id', 'content', 'added_at', 'parent')
 
 
-class ArticleBookmarksSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
-    user_id = serializers.PrimaryKeyRelatedField(
-        queryset=CustomUser.objects.all(),
-        source='user',
-        write_only=True
-    )
-
-    class Meta:
+class ArticleBookmarksSerializer(ArticleUserMixinSerializer, serializers.ModelSerializer):
+    class Meta(ArticleUserMixinSerializer.Meta):
         model = ArticleBookmarks
-        fields = ('user', 'article', 'user_id')
-        extra_kwargs = {'article': {'write_only': True}}
 
 
-class ArticleLikesSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
-    user_id = serializers.PrimaryKeyRelatedField(
-        queryset=CustomUser.objects.all(),
-        source='user',
-        write_only=True
-    )
-
-    class Meta:
+class ArticleLikesSerializer(ArticleUserMixinSerializer, serializers.ModelSerializer):
+    class Meta(ArticleUserMixinSerializer.Meta):
         model = ArticleLikes
-        fields = ('user', 'article', 'user_id')
-        extra_kwargs = {'article': {'write_only': True}}
 
 
 class ArticleStatsSerializer(serializers.Serializer):
