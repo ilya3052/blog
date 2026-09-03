@@ -32,11 +32,12 @@ SECRET_KEY = config.secret_django.secret_key.get_secret_value()
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.1.53', '192.168.1.85']
+ALLOWED_HOSTS = ['192.168.1.53', '192.168.1.85', '192.168.171.143']
 
 CORS_ALLOWED_ORIGINS = [
     "http://192.168.1.85",
     "http://192.168.1.85:82",
+    "http://192.168.171.143",
 ]
 
 CORS_ALLOW_CREDENTIALS = True

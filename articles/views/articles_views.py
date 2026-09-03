@@ -1,4 +1,4 @@
-from django.db.models import Exists, OuterRef, Count, F
+from django.db.models import Exists, OuterRef, Count, F, Value, BooleanField
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
@@ -11,6 +11,7 @@ from articles.permissions import ReadOnly, IsArticleOwner
 from articles.seriaizers.articles_serializers import ArticleCreateSerializer, TagSerializer, \
     ArticleCommentsSerializer, \
     ArticleLikesSerializer, ArticleDetailInfoSerializer, ArticleShortInfoSerializer, ArticleBookmarksSerializer
+from shared.permissions import IsItself
 from users.models import CustomUser, Subscription
 
 
@@ -267,6 +268,31 @@ class UserArticlesViews(generics.ListAPIView):
             likes_count=Count('likes'),
             unique_views_count=Count('unique_views'),
             comments_count=Count('comments', distinct=True)
-            )
+        )
                 .select_related('author')
                 .filter(author=author, status='PUBLISHED'))
+
+
+class UserBookmarksViews(generics.ListAPIView):
+    serializer_class = ArticleShortInfoSerializer
+    permission_classes = [IsAuthenticated & IsItself]
+
+    def get_queryset(self):
+        user = self.request.user
+        return (Article.objects
+                .filter(
+            id__in=ArticleBookmarks.objects.filter(user=user).values('article_id'))
+                .annotate(
+            is_liked=Exists(
+                ArticleLikes.objects.filter(
+                    article=OuterRef('pk'),
+                    user=user
+                )
+            ),
+            is_bookmarked=Value(True, output_field=BooleanField()),
+            likes_count=Count('likes'),
+            unique_views_count=Count('unique_views'),
+            comments_count=Count('comments', distinct=True)
+        )
+                .select_related('author')
+                )
